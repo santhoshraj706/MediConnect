@@ -80,4 +80,4 @@ App runs at `http://localhost:3000`.
 
 ---
 
-*Developed with ❤️ by Team [Your Team Name] @ Hackrax'26*
+*Developed with ❤️ by Team Debug Doctors @ Hackrax'26*
