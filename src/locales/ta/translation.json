@@ -1,0 +1,103 @@
+{
+  "app": {
+    "title": "மெடிகனெக்ட்",
+    "tagline": "இந்தியாவுக்கான AI-ஆதாரமான கிராமப்புற டெலிமெடிசின் தளம்",
+    "connecting": "மெடிகனெக்ட்-க்கு இணைக்கிறது...",
+    "retryConnection": "மீண்டும் இணைக்கவும்",
+    "stillDisconnected": "இன்னும் துண்டிக்கப்பட்டுள்ளதா?",
+    "signInGoogle": "Google மூலம் உள்நுழைக",
+    "signingIn": "உள்நுழைகிறது..."
+  },
+  "auth": {
+    "errorSuffix": "உங்கள் இணைப்பை சரிபார்க்கவும்."
+  },
+  "nav": {
+    "dashboard": "டாஷ்போர்டு",
+    "outbreaks": "தொற்றுநோய்கள்",
+    "healthMap": "சுகாதார வரைபடம்"
+  },
+  "profile": {
+    "completeProfile": "உங்கள் விவரங்களை பூர்த்தி செய்யவும்",
+    "profileSub": "உங்கள் பாத்திரத்தைத் தேர்ந்தெடுத்து விவரங்களை வழங்கவும்.",
+    "ashaWorker": "ஆஷா பணியாளர்",
+    "doctor": "மருத்துவர்",
+    "dho": "மாவட்ட சுகாதார அதிகாரி",
+    "fullName": "முழு பெயர்",
+    "enterName": "உங்கள் முழு பெயரை உள்ளிடுக",
+    "specialty": "மருத்துவ நிபுணத்துவம்",
+    "language": "முதன்மை மொழி",
+    "assignedVillage": "ஒதுக்கப்பட்ட கிராமம்",
+    "additionalDetails": "கூடுதல் விவரங்கள்",
+    "completeRegistration": "பதிவை முடிக்கவும்"
+  },
+  "asha": {
+    "portalTitle": "ஆஷா பணியாளர் போர்டல்",
+    "patientTriage": "நோயாளி தரவரிசை",
+    "patientName": "நோயாளி பெயர்",
+    "enterPatientName": "நோயாளியின் பெயரை உள்ளிடுக",
+    "bp": "இரத்த அழுத்தம் (mmHg)",
+    "bpPlaceholder": "எ.கா. 120/80",
+    "temp": "வெப்பநிலை (°F)",
+    "tempPlaceholder": "எ.கா. 98.6",
+    "symptoms": "அறிகுறிகள்",
+    "symptomsPlaceholder": "நோயாளியின் அறிகுறிகளை விவரிக்கவும்...",
+    "runTriage": "AI தரவரிசை இயக்கு",
+    "runningTriage": "AI தரவரிசை நடைபெறுகிறது...",
+    "status": "நிலை",
+    "dismiss": "நிராகரி",
+    "ashaCanHandle": "ஆஷா பணியாளர் வீட்டு பராமரிப்பு வழங்கலாம்.",
+    "doctorRecommended": "மருத்துவர் ஆலோசனை பரிந்துரைக்கப்படுகிறது.",
+    "nearbyDoctors": "அருகிலுள்ள மருத்துவர்கள்",
+    "emergency": "அவசரநிலை: உடனடியாக 108 அழைக்கவும்",
+    "call108": "108 அழைக்கவும்",
+    "triageFailed": "AI தரவரிசை தோல்வி.",
+    "myPatients": "என் நோயாளிகள்",
+    "requestSupplies": "பொருட்கள் கோரிக்கை"
+  },
+  "doctor": {
+    "portalTitle": "மருத்துவர் போர்டல்",
+    "available": "சரிபார்க்கப்பட்டது",
+    "profileDetails": "சுயவிவர விவரங்கள்",
+    "name": "பெயர்",
+    "location": "இருப்பிடம்",
+    "activeConsultations": "நிலுவை ஆலோசனைகள்",
+    "noConsultations": "தற்போது நிலுவையில் ஆலோசனைகள் இல்லை.",
+    "syncIssue": "ஒத்திசைவு சிக்கல்",
+    "acceptCall": "ஏற்கவும்"
+  },
+  "dho": {
+    "portalTitle": "மாவட்ட சுகாதார அதிகாரி போர்டல்",
+    "overview": "கண்ணோட்டம்",
+    "doctorVerification": "மருத்துவர் சரிபார்ப்பு",
+    "supplyRequests": "பொருள் கோரிக்கைகள்",
+    "totalDoctors": "மொத்த மருத்துவர்கள்",
+    "verifiedDoctors": "சரிபார்க்கப்பட்டவை",
+    "pendingSupplies": "நிலுவை பொருட்கள்",
+    "activePatients": "செயலில் உள்ள நோயாளிகள்",
+    "noDoctors": "இன்னும் மருத்துவர்கள் பதிவு செய்யவில்லை.",
+    "noSupplyRequests": "பொருள் கோரிக்கைகள் இல்லை.",
+    "verify": "சரிபார்",
+    "revoke": "திரும்பப்பெறு",
+    "approve": "ஒப்புதல்",
+    "markCompleted": "முடிக்கப்பட்டதாக குறி",
+    "requestedBy": "கோரியவர்",
+    "qty": "அளவு"
+  },
+  "ai": {
+    "subtitle": "உங்கள் மருத்துவ உதவியாளர்",
+    "welcomeMessage": "மருத்துவ நெறிமுறைகள், மருந்து தகவல் அல்லது தரவரிசை வழிகாட்டுதல் பற்றி எதையும் கேளுங்கள்.",
+    "placeholder": "உங்கள் கேள்வியை தட்டச்சு செய்யுங்கள்..."
+  },
+  "maps": {
+    "loadingZoneData": "சுகாதார மண்டல தரவு ஏற்றுகிறது...",
+    "loadingOutbreakData": "தொற்றுநோய் தரவு ஏற்றுகிறது...",
+    "healthScore": "சுகாதார மதிப்பெண்:",
+    "patients": "நோயாளிகள்:",
+    "alerts": "எச்சரிக்கைகள்:",
+    "ashaWorker": "ஆஷா பணியாளர்:",
+    "viewVillageSummary": "கிராம சுருக்கம் காண்க",
+    "symptom": "அறிகுறி:",
+    "cases": "வழக்குகள்:",
+    "alertDHO": "DHO-க்கு எச்சரிக்கை"
+  }
+}

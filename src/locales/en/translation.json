@@ -1,0 +1,103 @@
+{
+  "app": {
+    "title": "MediConnect",
+    "tagline": "AI-Powered Rural Telemedicine Platform for India",
+    "connecting": "Connecting to MediConnect...",
+    "retryConnection": "Retry Connection",
+    "stillDisconnected": "Still disconnected? Ensure Firestore API is enabled...",
+    "signInGoogle": "Sign in with Google",
+    "signingIn": "Signing in..."
+  },
+  "auth": {
+    "errorSuffix": "Please check your connection."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "outbreaks": "Outbreaks",
+    "healthMap": "Health Map"
+  },
+  "profile": {
+    "completeProfile": "Complete Your Profile",
+    "profileSub": "Select your role and provide your details to get started.",
+    "ashaWorker": "ASHA Worker",
+    "doctor": "Doctor",
+    "dho": "District Health Officer",
+    "fullName": "Full Name",
+    "enterName": "Enter your full name",
+    "specialty": "Medical Specialty",
+    "language": "Primary Language",
+    "assignedVillage": "Assigned Village / Area",
+    "additionalDetails": "Additional Details (Optional)",
+    "completeRegistration": "Complete Registration"
+  },
+  "asha": {
+    "portalTitle": "ASHA Worker Portal",
+    "patientTriage": "Patient Triage",
+    "patientName": "Patient Name",
+    "enterPatientName": "Enter patient name",
+    "bp": "BP (mmHg)",
+    "bpPlaceholder": "e.g. 120/80",
+    "temp": "Temp (°F)",
+    "tempPlaceholder": "e.g. 98.6",
+    "symptoms": "Symptoms",
+    "symptomsPlaceholder": "Describe patient symptoms...",
+    "runTriage": "Run AI Triage",
+    "runningTriage": "AI Triage in Progress...",
+    "status": "Status",
+    "dismiss": "Dismiss",
+    "ashaCanHandle": "ASHA Worker can handle home care.",
+    "doctorRecommended": "Doctor consultation recommended.",
+    "nearbyDoctors": "Nearby Doctors",
+    "emergency": "EMERGENCY: CALL 108 IMMEDIATELY",
+    "call108": "CALL 108",
+    "triageFailed": "AI Triage failed.",
+    "myPatients": "My Patients",
+    "requestSupplies": "Request Supplies"
+  },
+  "doctor": {
+    "portalTitle": "Doctor Portal",
+    "available": "Verified",
+    "profileDetails": "Profile Details",
+    "name": "Name",
+    "location": "Location",
+    "activeConsultations": "Pending Consultations",
+    "noConsultations": "No pending consultations at the moment.",
+    "syncIssue": "Sync Issue",
+    "acceptCall": "Accept"
+  },
+  "dho": {
+    "portalTitle": "District Health Officer Portal",
+    "overview": "Overview",
+    "doctorVerification": "Doctor Verification",
+    "supplyRequests": "Supply Requests",
+    "totalDoctors": "Total Doctors",
+    "verifiedDoctors": "Verified",
+    "pendingSupplies": "Pending Supplies",
+    "activePatients": "Active Patients",
+    "noDoctors": "No doctors registered yet.",
+    "noSupplyRequests": "No supply requests.",
+    "verify": "Verify",
+    "revoke": "Revoke",
+    "approve": "Approve",
+    "markCompleted": "Mark Completed",
+    "requestedBy": "Requested by",
+    "qty": "Qty"
+  },
+  "ai": {
+    "subtitle": "Your medical assistant",
+    "welcomeMessage": "Ask me anything about medical protocols, drug info, or triage guidance.",
+    "placeholder": "Type your question..."
+  },
+  "maps": {
+    "loadingZoneData": "Loading Health Zone Data...",
+    "loadingOutbreakData": "Loading Outbreak Data...",
+    "healthScore": "Health Score:",
+    "patients": "Patients:",
+    "alerts": "Alerts:",
+    "ashaWorker": "ASHA Worker:",
+    "viewVillageSummary": "View Village Summary",
+    "symptom": "Symptom:",
+    "cases": "Cases:",
+    "alertDHO": "Alert DHO"
+  }
+}

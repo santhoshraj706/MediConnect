@@ -1,0 +1,1446 @@
+import React, { useState, useEffect } from "react";
+import { useJsApiLoader, GoogleMap, HeatmapLayer, InfoWindow, Marker } from "@react-google-maps/api";
+import { collection, doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
+import { db, auth } from "./firebase";
+import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User } from "firebase/auth";
+import { HeartPulse, Stethoscope, User as UserIcon, MapPin, Activity, ShieldAlert, Map as MapIcon, Users, Bell, ChevronRight, Search } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import AshaDashboard from "./components/AshaDashboard";
+import DoctorDashboard from "./components/DoctorDashboard";
+import OutbreakHeatMap from "./components/OutbreakHeatMap";
+import ChoroplethMap from "./components/ChoroplethMap";
+
+const LIBRARIES: ("visualization" | "geometry")[] = ["visualization", "geometry"];
+
+export default function App() {
+  const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [roleSelection, setRoleSelection] = useState<"asha" | "doctor" | null>(null);
+  const [registrationData, setRegistrationData] = useState({ name: "", specialty: "", language: "", details: "" });
+  const [activeTab, setActiveTab] = useState<"dashboard" | "outbreak" | "choropleth">("dashboard");
+
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: process.env.MAPS_API_KEY || "",
+    libraries: LIBRARIES,
+  });
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setUser(user);
+      setIsAuthReady(true);
+      if (user) {
+        fetchUserProfile(user.uid);
+      } else {
+        setLoadingProfile(false);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const fetchUserProfile = async (uid: string) => {
+    setLoadingProfile(true);
+    try {
+      const docRef = doc(db, "users", uid);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setUserProfile(docSnap.data());
+      }
+    } catch (error) {
+      console.error("Error fetching profile", error);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  const handleLogin = async () => {
+    if (isLoggingIn) return;
+    setIsLoggingIn(true);
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error: any) {
+      if (error.code !== 'auth/cancelled-popup-request' && error.code !== 'auth/popup-closed-by-user') {
+        console.error("Login failed", error);
+      }
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleRegistration = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !roleSelection) return;
+
+    setLoadingProfile(true);
+    try {
+      // Get current location
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject);
+      });
+
+      const profile = {
+        uid: user.uid,
+        name: registrationData.name || user.displayName,
+        role: roleSelection,
+        location: {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        },
+        specialty: registrationData.specialty,
+        language: registrationData.language,
+        details: registrationData.details,
+        email: user.email
+      };
+
+      await setDoc(doc(db, "users", user.uid), profile);
+      setUserProfile(profile);
+    } catch (error) {
+      console.error("Registration failed", error);
+      alert("Registration failed. Please ensure location access is granted.");
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
+  if (!isAuthReady) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 text-center border border-slate-100"
+        >
+          <div className="w-20 h-20 bg-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-indigo-200">
+            <HeartPulse className="text-white w-12 h-12" />
+          </div>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">MediConnect</h1>
+          <p className="text-slate-500 mb-8">AI-Powered Rural Telemedicine Platform for India</p>
+          <button 
+            onClick={handleLogin}
+            disabled={isLoggingIn}
+            className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-3 disabled:opacity-50"
+          >
+            <UserIcon className="w-5 h-5" />
+            {isLoggingIn ? "Signing in..." : "Sign in with Google"}
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (loadingProfile) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (!userProfile) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-2xl w-full bg-white rounded-3xl shadow-xl p-10 border border-slate-100"
+        >
+          <h2 className="text-3xl font-bold text-slate-900 mb-2">Complete Your Profile</h2>
+          <p className="text-slate-500 mb-8">Select your role and provide your details to get started.</p>
+          
+          <div className="grid grid-cols-2 gap-4 mb-8">
+            <button 
+              onClick={() => setRoleSelection("asha")}
+              className={`p-6 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 ${roleSelection === "asha" ? "border-indigo-600 bg-indigo-50 text-indigo-700" : "border-slate-100 text-slate-500 hover:border-indigo-200"}`}
+            >
+              <HeartPulse className="w-10 h-10" />
+              <span className="font-bold">ASHA Worker</span>
+            </button>
+            <button 
+              onClick={() => setRoleSelection("doctor")}
+              className={`p-6 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 ${roleSelection === "doctor" ? "border-indigo-600 bg-indigo-50 text-indigo-700" : "border-slate-100 text-slate-500 hover:border-indigo-200"}`}
+            >
+              <Stethoscope className="w-10 h-10" />
+              <span className="font-bold">Doctor</span>
+            </button>
+          </div>
+
+          {roleSelection && (
+            <form onSubmit={handleRegistration} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Full Name</label>
+                <input 
+                  required
+                  value={registrationData.name}
+                  onChange={(e) => setRegistrationData({...registrationData, name: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  placeholder="Enter your full name"
+                />
+              </div>
+              {roleSelection === "doctor" && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Specialty</label>
+                    <input 
+                      required
+                      value={registrationData.specialty}
+                      onChange={(e) => setRegistrationData({...registrationData, specialty: e.target.value})}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      placeholder="e.g. Pediatrician"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Languages</label>
+                    <input 
+                      required
+                      value={registrationData.language}
+                      onChange={(e) => setRegistrationData({...registrationData, language: e.target.value})}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      placeholder="e.g. Tamil, English"
+                    />
+                  </div>
+                </div>
+              )}
+              <button className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
+                Complete Registration
+              </button>
+              <p className="text-center text-xs text-slate-400">We will use your current location for geo-matching.</p>
+            </form>
+          )}
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <p className="text-slate-500 font-medium">Loading Maps...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
+        {/* Sidebar */}
+        <aside className="w-full md:w-72 bg-white border-r border-slate-200 flex flex-col z-10">
+          <div className="p-6 border-b border-slate-100 flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-md shadow-indigo-100">
+              <HeartPulse className="text-white w-6 h-6" />
+            </div>
+            <span className="text-xl font-bold text-slate-900 tracking-tight">MediConnect</span>
+          </div>
+
+          <nav className="flex-1 p-4 space-y-2">
+            <button 
+              onClick={() => setActiveTab("dashboard")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === "dashboard" ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-slate-500 hover:bg-slate-50"}`}
+            >
+              <Activity className="w-5 h-5" />
+              Dashboard
+            </button>
+            <button 
+              onClick={() => setActiveTab("outbreak")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === "outbreak" ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-slate-500 hover:bg-slate-50"}`}
+            >
+              <ShieldAlert className="w-5 h-5" />
+              Outbreak Map
+            </button>
+            <button 
+              onClick={() => setActiveTab("choropleth")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === "choropleth" ? "bg-indigo-50 text-indigo-700 font-semibold" : "text-slate-500 hover:bg-slate-50"}`}
+            >
+              <MapIcon className="w-5 h-5" />
+              Health Zones
+            </button>
+          </nav>
+
+          <div className="p-4 border-t border-slate-100">
+            <div className="bg-slate-50 rounded-2xl p-4 flex items-center gap-3">
+              <img src={user.photoURL || ""} alt={user.displayName || ""} className="w-10 h-10 rounded-full border-2 border-white shadow-sm" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-slate-900 truncate">{userProfile.name}</p>
+                <p className="text-xs text-slate-500 truncate uppercase tracking-widest font-bold">{userProfile.role}</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => auth.signOut()}
+              className="w-full mt-4 text-xs text-slate-400 hover:text-red-500 font-medium transition-colors"
+            >
+              Sign Out
+            </button>
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <header className="h-20 bg-white border-b border-slate-200 px-8 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-slate-900">
+              {activeTab === "dashboard" && "MediConnect Dashboard"}
+              {activeTab === "outbreak" && "Outbreak Monitoring"}
+              {activeTab === "choropleth" && "Health Zone Analysis"}
+            </h2>
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <Bell className="w-6 h-6 text-slate-400 cursor-pointer" />
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full font-bold">3</span>
+              </div>
+            </div>
+          </header>
+
+          <div className="flex-1 p-8 overflow-y-auto">
+            <AnimatePresence mode="wait">
+              {activeTab === "dashboard" && (
+                <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                  {userProfile.role === "asha" ? (
+                    <AshaDashboard userProfile={userProfile} />
+                  ) : (
+                    <DoctorDashboard userProfile={userProfile} />
+                  )}
+                </motion.div>
+              )}
+              {activeTab === "outbreak" && (
+                <motion.div key="outbreak" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                  <OutbreakHeatMap />
+                </motion.div>
+              )}
+              {activeTab === "choropleth" && (
+                <motion.div key="choropleth" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                  <ChoroplethMap />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </main>
+      </div>
+  );
+}
+
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+
+// Import the Firebase configuration
+import firebaseConfig from '../firebase-applet-config.json';
+
+// Initialize Firebase SDK
+const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const auth = getAuth(app);
+
+// Validate Connection to Firestore
+async function testConnection() {
+  try {
+    // This is just a connection test to ensure the client is online and config is correct
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if(error instanceof Error && error.message.includes('the client is offline')) {
+      console.error("Please check your Firebase configuration. The client is offline.");
+    }
+    // Skip logging for other errors, as this is simply a connection test.
+  }
+}
+
+testConnection();
+import React, { useState, useEffect } from "react";
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
+import { db, auth } from "../firebase";
+import { GoogleGenAI } from "@google/genai";
+import { HeartPulse, Activity, Thermometer, Stethoscope, Phone, AlertTriangle, CheckCircle, Search, User, MapPin } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+
+export default function AshaDashboard({ userProfile }: { userProfile: any }) {
+  const [patientName, setPatientName] = useState("");
+  const [bp, setBp] = useState("");
+  const [temperature, setTemperature] = useState("");
+  const [symptoms, setSymptoms] = useState("");
+  const [triageResult, setTriageResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [nearbyDoctors, setNearbyDoctors] = useState<any[]>([]);
+  const [searchingDoctors, setSearchingDoctors] = useState(false);
+
+  const handleTriage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setTriageResult(null);
+
+    try {
+      const prompt = `
+        As a medical triage AI, score the following patient symptoms on a scale of 1 to 100 (1 being healthy/minor, 100 being critical emergency).
+        Patient: ${patientName}
+        BP: ${bp}
+        Temperature: ${temperature}°F
+        Symptoms: ${symptoms}
+        
+        Return ONLY a JSON object with:
+        {
+          "score": number,
+          "reason": "short explanation",
+          "status": "GREEN" | "YELLOW" | "RED"
+        }
+        Logic: 1-35 GREEN, 36-70 YELLOW, 71-100 RED.
+      `;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
+
+      const triageDataJson = JSON.parse(response.text || "{}");
+      
+      const triageData = {
+        ashaUid: auth.currentUser?.uid,
+        patientName,
+        bp,
+        temperature: parseFloat(temperature),
+        symptoms,
+        score: triageDataJson.score,
+        status: triageDataJson.status,
+        reason: triageDataJson.reason,
+        timestamp: serverTimestamp(),
+        location: userProfile.location
+      };
+
+      await addDoc(collection(db, "patients"), triageData);
+      setTriageResult(triageData);
+
+      if (triageDataJson.status === "YELLOW") {
+        searchNearbyDoctors();
+      }
+    } catch (error) {
+      console.error("Triage failed", error);
+      alert("AI Triage failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const searchNearbyDoctors = async () => {
+    setSearchingDoctors(true);
+    try {
+      // Fetch doctors from Firestore
+      const q = query(collection(db, "users"), where("role", "==", "doctor"));
+      const snapshot = await getDocs(q);
+      const doctors = snapshot.docs.map(doc => doc.data());
+
+      // Use the backend matching API
+      const response = await fetch(`/api/doctor-match?patientLat=${userProfile.location.lat}&patientLng=${userProfile.location.lng}&doctors=${JSON.stringify(doctors)}`);
+      const data = await response.json();
+      setNearbyDoctors(data);
+    } catch (error) {
+      console.error("Failed to find doctors", error);
+    } finally {
+      setSearchingDoctors(false);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto p-6 space-y-8">
+      <header className="flex items-center justify-between bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
+            <HeartPulse className="text-white w-7 h-7" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">ASHA Worker Portal</h1>
+            <p className="text-slate-500 text-sm flex items-center gap-1">
+              <MapPin className="w-3 h-3" /> {userProfile.name} • {userProfile.location.lat.toFixed(4)}, {userProfile.location.lng.toFixed(4)}
+            </p>
+          </div>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Triage Form */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100"
+        >
+          <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+            <Activity className="text-indigo-600 w-5 h-5" />
+            Patient Triage
+          </h2>
+          <form onSubmit={handleTriage} className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Patient Name</label>
+              <input 
+                required
+                value={patientName}
+                onChange={(e) => setPatientName(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                placeholder="Enter patient name"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">BP (mmHg)</label>
+                <input 
+                  required
+                  value={bp}
+                  onChange={(e) => setBp(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  placeholder="e.g. 120/80"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Temp (°F)</label>
+                <input 
+                  required
+                  type="number"
+                  step="0.1"
+                  value={temperature}
+                  onChange={(e) => setTemperature(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  placeholder="e.g. 98.6"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Symptoms</label>
+              <textarea 
+                required
+                value={symptoms}
+                onChange={(e) => setSymptoms(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all h-32"
+                placeholder="Describe patient symptoms..."
+              />
+            </div>
+            <button 
+              disabled={loading}
+              className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 disabled:opacity-50"
+            >
+              {loading ? "AI Triage in Progress..." : "Run AI Triage"}
+            </button>
+          </form>
+        </motion.div>
+
+        {/* Results Section */}
+        <div className="space-y-6">
+          <AnimatePresence mode="wait">
+            {triageResult && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className={`p-8 rounded-3xl border-2 shadow-lg ${
+                  triageResult.status === 'GREEN' ? 'bg-emerald-50 border-emerald-200' :
+                  triageResult.status === 'YELLOW' ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-2xl font-black uppercase tracking-tighter">
+                    Status: {triageResult.status}
+                  </h3>
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg text-white ${
+                    triageResult.status === 'GREEN' ? 'bg-emerald-500' :
+                    triageResult.status === 'YELLOW' ? 'bg-amber-500' : 'bg-red-500'
+                  }`}>
+                    {triageResult.score}
+                  </div>
+                </div>
+                <p className="text-slate-700 font-medium mb-6">{triageResult.reason}</p>
+
+                {triageResult.status === 'GREEN' && (
+                  <div className="flex items-center gap-3 text-emerald-700 font-bold bg-white/50 p-4 rounded-2xl">
+                    <CheckCircle className="w-6 h-6" />
+                    ASHA Worker can handle home care.
+                  </div>
+                )}
+
+                {triageResult.status === 'YELLOW' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 text-amber-700 font-bold bg-white/50 p-4 rounded-2xl">
+                      <Stethoscope className="w-6 h-6" />
+                      Doctor consultation recommended.
+                    </div>
+                    
+                    <div className="mt-6">
+                      <h4 className="text-sm font-bold text-amber-800 uppercase tracking-widest mb-3">Nearby Doctors</h4>
+                      {searchingDoctors ? (
+                        <div className="animate-pulse space-y-2">
+                          <div className="h-12 bg-white/50 rounded-xl"></div>
+                          <div className="h-12 bg-white/50 rounded-xl"></div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {nearbyDoctors.map((doc, idx) => (
+                            <div key={idx} className="bg-white p-4 rounded-2xl flex items-center justify-between shadow-sm border border-amber-100">
+                              <div>
+                                <p className="font-bold text-slate-900">{doc.name}</p>
+                                <p className="text-xs text-slate-500">{doc.specialty} • {doc.language}</p>
+                              </div>
+                              <button 
+                                onClick={() => alert(`Calling ${doc.name}...`)}
+                                className="bg-indigo-600 text-white p-2 rounded-xl hover:bg-indigo-700 transition-all"
+                              >
+                                <Phone className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {triageResult.status === 'RED' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 text-red-700 font-bold bg-white/50 p-4 rounded-2xl animate-pulse">
+                      <AlertTriangle className="w-6 h-6" />
+                      EMERGENCY: CALL 108 IMMEDIATELY
+                    </div>
+                    <button 
+                      onClick={() => alert("Calling 108...")}
+                      className="w-full bg-red-600 text-white font-bold py-4 rounded-2xl hover:bg-red-700 transition-all shadow-lg flex items-center justify-center gap-3"
+                    >
+                      <Phone className="w-6 h-6" />
+                      CALL 108
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}
+import React, { useState, useEffect, useMemo } from "react";
+import { GoogleMap, Data, InfoWindow } from "@react-google-maps/api";
+import { collection, onSnapshot, query } from "firebase/firestore";
+import { db } from "../firebase";
+
+const containerStyle = {
+  width: "100%",
+  height: "500px",
+};
+
+const center = {
+  lat: 10.8505,
+  lng: 76.2711,
+};
+
+enum OperationType {
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: any;
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: "unknown", // Simplified for this demo
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+export default function ChoroplethMap() {
+  const [zones, setZones] = useState<any[]>([]);
+  const [selectedZone, setSelectedZone] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const path = "zones";
+    const q = query(collection(db, path));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setZones(data);
+      setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, path);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const geoJsonData = useMemo(() => {
+    const features = zones.map(z => {
+      try {
+        const geometry = JSON.parse(z.geoJson);
+        return {
+          type: "Feature",
+          id: z.id,
+          geometry: geometry,
+          properties: {
+            villageName: z.villageName,
+            score: z.score,
+            stats: z.stats,
+            ashaWorker: z.stats.ashaWorker,
+          }
+        };
+      } catch (e) {
+        console.error("Invalid GeoJSON for zone", z.id);
+        return null;
+      }
+    }).filter(f => f !== null);
+
+    return {
+      type: "FeatureCollection",
+      features: features
+    };
+  }, [zones]);
+
+  const getFeatureStyle = (feature: any) => {
+    const score = feature.getProperty("score");
+    let color = "#10b981"; // GREEN (0-40)
+    if (score > 40 && score <= 70) color = "#f59e0b"; // YELLOW (41-70)
+    if (score > 70) color = "#ef4444"; // RED (71-100)
+
+    return {
+      fillColor: color,
+      fillOpacity: 0.6,
+      strokeWeight: 1,
+      strokeColor: "#ffffff",
+      clickable: true,
+    };
+  };
+
+  if (loading) {
+    return (
+      <div className="w-full h-[500px] bg-gray-100 animate-pulse flex items-center justify-center rounded-xl border border-gray-200">
+        <span className="text-gray-400 font-medium">Loading Health Zone Data...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+      <GoogleMap
+        mapContainerStyle={containerStyle}
+        center={center}
+        zoom={7}
+      >
+        <Data
+          onLoad={(data) => {
+            data.addGeoJson(geoJsonData);
+            data.setStyle(getFeatureStyle);
+          }}
+          onClick={(e) => {
+            const feature = e.feature;
+            setSelectedZone({
+              id: feature.getId(),
+              villageName: feature.getProperty("villageName"),
+              score: feature.getProperty("score"),
+              stats: feature.getProperty("stats"),
+              ashaWorker: feature.getProperty("ashaWorker"),
+              latLng: e.latLng,
+            });
+          }}
+        />
+
+        {selectedZone && (
+          <InfoWindow
+            position={selectedZone.latLng}
+            onCloseClick={() => setSelectedZone(null)}
+          >
+            <div className="p-2 max-w-[250px]">
+              <h3 className="font-bold text-lg text-gray-800">{selectedZone.villageName}</h3>
+              <div className="mt-2 space-y-1">
+                <p className="text-sm">
+                  <span className="font-semibold text-gray-600">Health Score:</span> 
+                  <span className={`ml-2 px-2 py-0.5 rounded text-white text-xs font-bold ${
+                    selectedZone.score > 70 ? 'bg-red-500' : 
+                    selectedZone.score > 40 ? 'bg-amber-500' : 'bg-emerald-500'
+                  }`}>
+                    {selectedZone.score}
+                  </span>
+                </p>
+                <p className="text-sm text-gray-600">
+                  <span className="font-semibold">Patients:</span> {selectedZone.stats.patients}
+                </p>
+                <p className="text-sm text-gray-600">
+                  <span className="font-semibold">Alerts:</span> {selectedZone.stats.alerts}
+                </p>
+                <p className="text-sm text-gray-600">
+                  <span className="font-semibold">ASHA Worker:</span> {selectedZone.ashaWorker}
+                </p>
+              </div>
+              <button 
+                onClick={() => alert(`Drilling down to ${selectedZone.villageName} patient summary`)}
+                className="w-full mt-3 bg-indigo-600 text-white text-xs py-2 rounded hover:bg-indigo-700 transition-colors font-semibold uppercase tracking-wider"
+              >
+                View Village Summary
+              </button>
+            </div>
+          </InfoWindow>
+        )}
+      </GoogleMap>
+    </div>
+  );
+}
+import React, { useState, useEffect } from "react";
+import { collection, query, where, onSnapshot, doc, getDoc } from "firebase/firestore";
+import { db, auth } from "../firebase";
+import { Stethoscope, Users, MapPin, Activity, Clock, CheckCircle, User, Phone, Thermometer } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+
+export default function DoctorDashboard({ userProfile }: { userProfile: any }) {
+  const [activeConsultations, setActiveConsultations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Listen for patient triage records that might need a doctor
+    const q = query(collection(db, "patients"), where("status", "==", "YELLOW"));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setActiveConsultations(data);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  return (
+    <div className="max-w-4xl mx-auto p-6 space-y-8">
+      <header className="flex items-center justify-between bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
+            <Stethoscope className="text-white w-7 h-7" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Doctor Portal</h1>
+            <p className="text-slate-500 text-sm flex items-center gap-1">
+              <MapPin className="w-3 h-3" /> {userProfile.name} • {userProfile.specialty}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-100">
+          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+          <span className="text-xs font-bold uppercase tracking-widest">Available</span>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Doctor Info Card */}
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100"
+        >
+          <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+            <User className="text-indigo-600 w-5 h-5" />
+            Profile Details
+          </h2>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between py-2 border-b border-slate-50">
+              <span className="text-sm text-slate-500">Name</span>
+              <span className="text-sm font-bold text-slate-900">{userProfile.name}</span>
+            </div>
+            <div className="flex items-center justify-between py-2 border-b border-slate-50">
+              <span className="text-sm text-slate-500">Specialty</span>
+              <span className="text-sm font-bold text-slate-900">{userProfile.specialty}</span>
+            </div>
+            <div className="flex items-center justify-between py-2 border-b border-slate-50">
+              <span className="text-sm text-slate-500">Language</span>
+              <span className="text-sm font-bold text-slate-900">{userProfile.language}</span>
+            </div>
+            <div className="flex items-center justify-between py-2 border-b border-slate-50">
+              <span className="text-sm text-slate-500">Location</span>
+              <span className="text-xs font-bold text-slate-900">{userProfile.location.lat.toFixed(4)}, {userProfile.location.lng.toFixed(4)}</span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Active Consultations */}
+        <div className="lg:col-span-2 space-y-6">
+          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+            <Activity className="text-amber-600 w-5 h-5" />
+            Active Consultations (YELLOW)
+          </h2>
+          
+          {loading ? (
+            <div className="animate-pulse space-y-4">
+              <div className="h-32 bg-white rounded-3xl"></div>
+              <div className="h-32 bg-white rounded-3xl"></div>
+            </div>
+          ) : activeConsultations.length > 0 ? (
+            <div className="space-y-4">
+              {activeConsultations.map((consult, idx) => (
+                <motion.div 
+                  key={idx}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-between hover:border-indigo-200 transition-all group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center border border-amber-100 text-amber-600 font-bold">
+                      {consult.score}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-lg">{consult.patientName}</h4>
+                      <p className="text-xs text-slate-500">{consult.symptoms.substring(0, 50)}...</p>
+                      <div className="flex items-center gap-3 mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        <span className="flex items-center gap-1"><Thermometer className="w-3 h-3" /> {consult.temperature}°F</span>
+                        <span className="flex items-center gap-1"><Activity className="w-3 h-3" /> BP: {consult.bp}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => alert(`Connecting to ASHA worker for ${consult.patientName}...`)}
+                      className="bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 transition-all flex items-center gap-2 text-sm font-bold shadow-lg shadow-indigo-100"
+                    >
+                      <Phone className="w-4 h-4" />
+                      Accept Call
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-20 text-center border-2 border-dashed border-slate-100 rounded-3xl bg-white">
+              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="text-slate-300 w-8 h-8" />
+              </div>
+              <p className="text-slate-400 font-medium">No active consultations at the moment.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+import React, { useState, useEffect, useMemo } from "react";
+import { GoogleMap, HeatmapLayer, InfoWindow, Marker } from "@react-google-maps/api";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { db } from "../firebase";
+
+const containerStyle = {
+  width: "100%",
+  height: "500px",
+};
+
+const center = {
+  lat: 10.8505,
+  lng: 76.2711,
+};
+
+enum OperationType {
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: any;
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: "unknown", // Simplified for this demo
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+export default function OutbreakHeatMap() {
+  const [outbreaks, setOutbreaks] = useState<any[]>([]);
+  const [selectedOutbreak, setSelectedOutbreak] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const path = "outbreaks";
+    const q = query(collection(db, path));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setOutbreaks(data);
+      setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, path);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const heatmapData = useMemo(() => {
+    if (!window.google) return [];
+    return outbreaks.map(o => ({
+      location: new window.google.maps.LatLng(o.location.lat, o.location.lng),
+      weight: o.caseCount
+    }));
+  }, [outbreaks]);
+
+  const gradient = [
+    "rgba(0, 255, 255, 0)",
+    "rgba(0, 255, 255, 1)",
+    "rgba(0, 191, 255, 1)",
+    "rgba(0, 127, 255, 1)",
+    "rgba(0, 63, 255, 1)",
+    "rgba(0, 0, 255, 1)",
+    "rgba(0, 0, 223, 1)",
+    "rgba(0, 0, 191, 1)",
+    "rgba(0, 0, 159, 1)",
+    "rgba(0, 0, 127, 1)",
+    "rgba(63, 0, 91, 1)",
+    "rgba(127, 0, 63, 1)",
+    "rgba(191, 0, 31, 1)",
+    "rgba(255, 0, 0, 1)",
+  ];
+
+  if (loading) {
+    return (
+      <div className="w-full h-[500px] bg-gray-100 animate-pulse flex items-center justify-center rounded-xl border border-gray-200">
+        <span className="text-gray-400 font-medium">Loading Outbreak Data...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+      <GoogleMap
+        mapContainerStyle={containerStyle}
+        center={center}
+        zoom={7}
+        options={{
+          styles: [
+            {
+              featureType: "all",
+              elementType: "labels.text.fill",
+              stylers: [{ color: "#7c93a3" }],
+            },
+          ],
+        }}
+      >
+        <HeatmapLayer
+          data={heatmapData}
+          options={{
+            radius: 30,
+            opacity: 0.8,
+            gradient: gradient,
+          }}
+        />
+
+        {outbreaks.map((o) => (
+          <Marker
+            key={o.id}
+            position={{ lat: o.location.lat, lng: o.location.lng }}
+            onClick={() => setSelectedOutbreak(o)}
+            icon={{
+              path: window.google?.maps?.SymbolPath?.CIRCLE,
+              scale: 0, // Hide marker, only use for click area
+            }}
+          />
+        ))}
+
+        {selectedOutbreak && (
+          <InfoWindow
+            position={{ lat: selectedOutbreak.location.lat, lng: selectedOutbreak.location.lng }}
+            onCloseClick={() => setSelectedOutbreak(null)}
+          >
+            <div className="p-2 max-w-[200px]">
+              <h3 className="font-bold text-lg text-red-600">{selectedOutbreak.villageName}</h3>
+              <p className="text-sm text-gray-600 mb-1">
+                <span className="font-semibold">Symptom:</span> {selectedOutbreak.symptomType}
+              </p>
+              <p className="text-sm text-gray-600 mb-1">
+                <span className="font-semibold">Cases:</span> {selectedOutbreak.caseCount}
+              </p>
+              <p className="text-xs text-gray-400 mb-3">
+                {selectedOutbreak.timestamp?.toDate().toLocaleString()}
+              </p>
+              <button 
+                onClick={() => alert(`Alerting DHO for ${selectedOutbreak.villageName}`)}
+                className="w-full bg-red-600 text-white text-xs py-2 rounded hover:bg-red-700 transition-colors font-semibold uppercase tracking-wider"
+              >
+                Alert DHO
+              </button>
+            </div>
+          </InfoWindow>
+        )}
+      </GoogleMap>
+    </div>
+  );
+}
+{
+  "name": "react-example",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx server.ts",
+    "build": "vite build",
+    "preview": "vite preview",
+    "clean": "rm -rf dist",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@google/genai": "^1.29.0",
+    "@googlemaps/google-maps-services-js": "^3.4.2",
+    "@react-google-maps/api": "^2.20.8",
+    "@tailwindcss/vite": "^4.1.14",
+    "@vitejs/plugin-react": "^5.0.4",
+    "clsx": "^2.1.1",
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "firebase": "^12.11.0",
+    "lucide-react": "^0.546.0",
+    "motion": "^12.23.24",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+    "tailwind-merge": "^3.5.0",
+    "vite": "^6.2.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.14.0",
+    "autoprefixer": "^10.4.21",
+    "tailwindcss": "^4.1.14",
+    "tsx": "^4.21.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}
+import express from "express";
+import { createServer as createViteServer } from "vite";
+import path from "path";
+import { Client } from "@googlemaps/google-maps-services-js";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const mapsClient = new Client({});
+
+async function startServer() {
+  try {
+    const app = express();
+    const PORT = 3000;
+
+    app.use(express.json());
+
+    // Health check endpoint
+    app.get("/api/health", (req, res) => {
+      res.json({ status: "ok", message: "MediConnect Server is running" });
+    });
+
+    // Feature 3 — Doctor Geo-Matching Scoring
+    app.get("/api/doctor-match", async (req, res) => {
+      const { patientLat, patientLng, doctors } = req.query;
+
+      if (!patientLat || !patientLng || !doctors) {
+        return res.status(400).json({ error: "Missing required parameters" });
+      }
+
+      const patientLocation = { lat: parseFloat(patientLat as string), lng: parseFloat(patientLng as string) };
+      let doctorList;
+      try {
+        doctorList = JSON.parse(doctors as string);
+      } catch (e) {
+        return res.status(400).json({ error: "Invalid doctors data" });
+      }
+
+      try {
+        const destinations = doctorList.map((d: any) => ({ lat: d.location.lat, lng: d.location.lng }));
+        
+        const response = await mapsClient.distancematrix({
+          params: {
+            origins: [patientLocation],
+            destinations: destinations,
+            key: process.env.MAPS_API_KEY || "",
+          },
+          timeout: 5000,
+        });
+
+        const results = response.data.rows[0].elements;
+
+        const scoredDoctors = doctorList.map((doctor: any, index: number) => {
+          const element = results[index];
+          const travelMinutes = (element && element.status === 'OK') ? element.duration.value / 60 : 120;
+          const proximityScore = Math.max(0, Math.min(1, 1 - (travelMinutes / 120)));
+          
+          const specialtyMatch = doctor.specialtyMatch || 1;
+          const languageMatch = doctor.languageMatch || 1;
+          const ratingScore = (doctor.rating || 4.5) / 5;
+          const queueLoadInverse = 1 - ((doctor.queueLoad || 10) / 100);
+
+          const finalScore = (specialtyMatch * 0.35) + 
+                             (languageMatch * 0.25) + 
+                             (ratingScore * 0.20) + 
+                             (queueLoadInverse * 0.10) + 
+                             (proximityScore * 0.10);
+
+          return {
+            ...doctor,
+            finalScore,
+            travelMinutes,
+            proximityScore
+          };
+        });
+
+        const top3 = scoredDoctors.sort((a: any, b: any) => b.finalScore - a.finalScore).slice(0, 3);
+        res.json(top3);
+      } catch (error) {
+        console.error("Distance Matrix API error:", error);
+        res.status(500).json({ error: "Failed to calculate doctor scores" });
+      }
+    });
+
+    // Vite middleware for development
+    if (process.env.NODE_ENV !== "production") {
+      console.log("Starting Vite in development mode...");
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+        root: process.cwd(),
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), "dist");
+      app.use(express.static(distPath));
+      app.get("*", (req, res) => {
+        res.sendFile(path.join(distPath, "index.html"));
+      });
+    }
+
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`MediConnect Server listening on http://0.0.0.0:${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  }
+}
+
+startServer();
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: outbreaks
+// Document ID: auto-generated
+// Fields:
+//   - villageName: string (required)
+//   - symptomType: string (required)
+//   - caseCount: number (required)
+//   - timestamp: timestamp (required)
+//   - location: map (required) { lat: number, lng: number }
+//
+// Collection: zones
+// Document ID: auto-generated
+// Fields:
+//   - villageId: string (required)
+//   - villageName: string (required)
+//   - score: number (required, 0-100)
+//   - stats: map (required) { patients: number, alerts: number, ashaWorker: string }
+//   - geoJson: string (required)
+//
+// Collection: doctors
+// Document ID: auto-generated
+// Fields:
+//   - name: string (required)
+//   - specialty: string (required)
+//   - language: string (required)
+//   - rating: number (required)
+//   - queueLoad: number (required)
+//   - location: map (required) { lat: number, lng: number }
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "santhoshrajtce@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidOutbreak(data) {
+      return hasRequiredFields(['villageName', 'symptomType', 'caseCount', 'timestamp', 'location']) &&
+             data.villageName is string && data.villageName.size() < 100 &&
+             data.symptomType is string && data.symptomType.size() < 100 &&
+             data.caseCount is number && data.caseCount >= 0 &&
+             data.timestamp is timestamp &&
+             data.location is map && data.location.lat is number && data.location.lng is number;
+    }
+
+    function isValidZone(data) {
+      return hasRequiredFields(['villageId', 'villageName', 'score', 'stats', 'geoJson']) &&
+             data.villageId is string &&
+             data.villageName is string && data.villageName.size() < 100 &&
+             data.score is number && data.score >= 0 && data.score <= 100 &&
+             data.stats is map && data.stats.patients is number && data.stats.alerts is number && data.stats.ashaWorker is string &&
+             data.geoJson is string;
+    }
+
+    function isValidDoctor(data) {
+      return hasRequiredFields(['name', 'specialty', 'language', 'rating', 'queueLoad', 'location']) &&
+             data.name is string && data.name.size() < 100 &&
+             data.specialty is string &&
+             data.language is string &&
+             data.rating is number && data.rating >= 0 && data.rating <= 5 &&
+             data.queueLoad is number && data.queueLoad >= 0 &&
+             data.location is map && data.location.lat is number && data.location.lng is number;
+    }
+
+    function isValidUser(data) {
+      return hasRequiredFields(['uid', 'name', 'role', 'location']) &&
+             data.uid is string && data.name is string &&
+             data.role in ['asha', 'doctor'] &&
+             data.location is map && data.location.lat is number && data.location.lng is number;
+    }
+
+    function isValidPatient(data) {
+      return hasRequiredFields(['ashaUid', 'patientName', 'score', 'status', 'timestamp']) &&
+             data.ashaUid is string && data.patientName is string &&
+             data.score is number && data.status in ['GREEN', 'YELLOW', 'RED'] &&
+             data.timestamp is timestamp;
+    }
+
+    // ===============================================================
+    // Match Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && request.auth.uid == userId && isValidUser(request.resource.data);
+    }
+
+    match /patients/{patientId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidPatient(request.resource.data);
+      allow update, delete: if isAuthenticated() && (request.auth.uid == resource.data.ashaUid || isAdmin());
+    }
+
+    match /outbreaks/{outbreakId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidOutbreak(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /zones/{zoneId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidZone(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /doctors/{doctorId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidDoctor(request.resource.data);
+      allow delete: if isAdmin();
+    }
+  }
+}
+/**
+ * outbreakDetector.js
+ * Firebase Cloud Function for outbreak detection.
+ * 
+ * Trigger: Firestore detects 3+ patients in same village with same symptoms within 72 hrs
+ */
+
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+admin.initializeApp();
+
+const db = admin.firestore();
+
+exports.detectOutbreak = functions.firestore
+    .document('patients/{patientId}')
+    .onCreate(async (snap, context) => {
+        const newPatient = snap.data();
+        const { villageName, symptomType, timestamp, location } = newPatient;
+
+        // Define 72-hour window
+        const seventyTwoHoursAgo = admin.firestore.Timestamp.fromDate(
+            new Date(Date.now() - 72 * 60 * 60 * 1000)
+        );
+
+        // Query for similar cases in the same village within 72 hours
+        const querySnapshot = await db.collection('patients')
+            .where('villageName', '==', villageName)
+            .where('symptomType', '==', symptomType)
+            .where('timestamp', '>=', seventyTwoHoursAgo)
+            .get();
+
+        const caseCount = querySnapshot.size;
+
+        if (caseCount >= 3) {
+            console.log(`Outbreak detected in ${villageName} for ${symptomType}. Case count: ${caseCount}`);
+
+            // Create or update outbreak record
+            const outbreakRef = db.collection('outbreaks').doc(`${villageName}_${symptomType}`);
+            
+            await outbreakRef.set({
+                villageName,
+                symptomType,
+                caseCount,
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                location,
+                status: 'active'
+            }, { merge: true });
+
+            // Optional: Send FCM notification to DHO
+            // const payload = {
+            //     notification: {
+            //         title: 'Outbreak Alert!',
+            //         body: `3+ cases of ${symptomType} detected in ${villageName}.`
+            //     }
+            // };
+            // await admin.messaging().sendToTopic('dho_alerts', payload);
+        }
+
+        return null;
+    });

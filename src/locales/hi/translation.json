@@ -1,0 +1,103 @@
+{
+  "app": {
+    "title": "मेडीकनेक्ट",
+    "tagline": "भारत के लिए AI-संचालित ग्रामीण टेलीमेडिसिन प्लेटफ़ॉर्म",
+    "connecting": "मेडीकनेक्ट से जुड़ रहा है...",
+    "retryConnection": "पुनः कनेक्ट करें",
+    "stillDisconnected": "अभी भी डिस्कनेक्ट है?",
+    "signInGoogle": "Google से साइन इन करें",
+    "signingIn": "साइन इन हो रहा है..."
+  },
+  "auth": {
+    "errorSuffix": "कृपया अपना कनेक्शन जांचें।"
+  },
+  "nav": {
+    "dashboard": "डैशबोर्ड",
+    "outbreaks": "प्रकोप",
+    "healthMap": "स्वास्थ्य मानचित्र"
+  },
+  "profile": {
+    "completeProfile": "अपनी प्रोफ़ाइल पूरी करें",
+    "profileSub": "अपनी भूमिका चुनें और अपना विवरण दें।",
+    "ashaWorker": "आशा कार्यकर्ता",
+    "doctor": "डॉक्टर",
+    "dho": "जिला स्वास्थ्य अधिकारी",
+    "fullName": "पूरा नाम",
+    "enterName": "अपना पूरा नाम दर्ज करें",
+    "specialty": "चिकित्सा विशेषज्ञता",
+    "language": "प्राथमिक भाषा",
+    "assignedVillage": "नियत गाँव",
+    "additionalDetails": "अतिरिक्त विवरण",
+    "completeRegistration": "पंजीकरण पूरा करें"
+  },
+  "asha": {
+    "portalTitle": "आशा कार्यकर्ता पोर्टल",
+    "patientTriage": "रोगी ट्राइएज",
+    "patientName": "रोगी का नाम",
+    "enterPatientName": "रोगी का नाम दर्ज करें",
+    "bp": "BP (mmHg)",
+    "bpPlaceholder": "जैसे 120/80",
+    "temp": "तापमान (°F)",
+    "tempPlaceholder": "जैसे 98.6",
+    "symptoms": "लक्षण",
+    "symptomsPlaceholder": "रोगी के लक्षणों का वर्णन करें...",
+    "runTriage": "AI ट्राइएज चलाएं",
+    "runningTriage": "AI ट्राइएज प्रगति में...",
+    "status": "स्थिति",
+    "dismiss": "खारिज करें",
+    "ashaCanHandle": "आशा कार्यकर्ता घर पर देखभाल कर सकती हैं।",
+    "doctorRecommended": "डॉक्टर से परामर्श की सिफारिश की।",
+    "nearbyDoctors": "नज़दीकी डॉक्टर",
+    "emergency": "आपातकाल: तुरंत 108 पर कॉल करें",
+    "call108": "108 पर कॉल करें",
+    "triageFailed": "AI ट्राइएज विफल रहा।",
+    "myPatients": "मेरे मरीज़",
+    "requestSupplies": "आपूर्ति अनुरोध"
+  },
+  "doctor": {
+    "portalTitle": "डॉक्टर पोर्टल",
+    "available": "सत्यापित",
+    "profileDetails": "प्रोफ़ाइल विवरण",
+    "name": "नाम",
+    "location": "स्थान",
+    "activeConsultations": "लंबित परामर्श",
+    "noConsultations": "इस समय कोई लंबित परामर्श नहीं।",
+    "syncIssue": "सिंक समस्या",
+    "acceptCall": "स्वीकार करें"
+  },
+  "dho": {
+    "portalTitle": "जिला स्वास्थ्य अधिकारी पोर्टल",
+    "overview": "अवलोकन",
+    "doctorVerification": "डॉक्टर सत्यापन",
+    "supplyRequests": "आपूर्ति अनुरोध",
+    "totalDoctors": "कुल डॉक्टर",
+    "verifiedDoctors": "सत्यापित",
+    "pendingSupplies": "लंबित आपूर्ति",
+    "activePatients": "सक्रिय मरीज़",
+    "noDoctors": "अभी तक कोई डॉक्टर पंजीकृत नहीं।",
+    "noSupplyRequests": "कोई आपूर्ति अनुरोध नहीं।",
+    "verify": "सत्यापित करें",
+    "revoke": "रद्द करें",
+    "approve": "स्वीकृत करें",
+    "markCompleted": "पूर्ण चिह्नित करें",
+    "requestedBy": "द्वारा अनुरोधित",
+    "qty": "मात्रा"
+  },
+  "ai": {
+    "subtitle": "आपका चिकित्सा सहायक",
+    "welcomeMessage": "चिकित्सा प्रोटोकॉल, दवा की जानकारी, या ट्राइएज मार्गदर्शन के बारे में कुछ भी पूछें।",
+    "placeholder": "अपना प्रश्न टाइप करें..."
+  },
+  "maps": {
+    "loadingZoneData": "स्वास्थ्य क्षेत्र डेटा लोड हो रहा है...",
+    "loadingOutbreakData": "प्रकोप डेटा लोड हो रहा है...",
+    "healthScore": "स्वास्थ्य स्कोर:",
+    "patients": "मरीज़:",
+    "alerts": "अलर्ट:",
+    "ashaWorker": "आशा कार्यकर्ता:",
+    "viewVillageSummary": "गाँव सारांश देखें",
+    "symptom": "लक्षण:",
+    "cases": "मामले:",
+    "alertDHO": "DHO को अलर्ट करें"
+  }
+}

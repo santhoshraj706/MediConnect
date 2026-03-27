@@ -1,0 +1,121 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "Represents a user (ASHA Worker or Doctor).",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["asha", "doctor"] },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "details": { "type": "string" },
+        "specialty": { "type": "string" },
+        "language": { "type": "string" }
+      },
+      "required": ["uid", "name", "role", "location"]
+    },
+    "patient": {
+      "title": "Patient Triage",
+      "description": "Represents a patient triage record.",
+      "type": "object",
+      "properties": {
+        "ashaUid": { "type": "string" },
+        "patientName": { "type": "string" },
+        "bp": { "type": "string" },
+        "temperature": { "type": "number" },
+        "symptoms": { "type": "string" },
+        "score": { "type": "integer" },
+        "status": { "type": "string", "enum": ["GREEN", "YELLOW", "RED"] },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        }
+      },
+      "required": ["ashaUid", "patientName", "score", "status", "timestamp"]
+    },
+    "outbreak": {
+      "title": "Outbreak",
+      "description": "Represents a cluster of symptoms in a specific location.",
+      "type": "object",
+      "properties": {
+        "villageName": { "type": "string" },
+        "symptomType": { "type": "string" },
+        "caseCount": { "type": "integer" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        }
+      },
+      "required": ["villageName", "symptomType", "caseCount", "timestamp", "location"]
+    },
+    "zone": {
+      "title": "Health Zone",
+      "description": "Represents a health zone with a risk score.",
+      "type": "object",
+      "properties": {
+        "villageId": { "type": "string" },
+        "villageName": { "type": "string" },
+        "score": { "type": "integer", "description": "Risk score from 0 to 100." },
+        "stats": {
+          "type": "object",
+          "properties": {
+            "patients": { "type": "integer" },
+            "alerts": { "type": "integer" },
+            "ashaWorker": { "type": "string" }
+          }
+        },
+        "geoJson": { "type": "string", "description": "Serialized GeoJSON polygon." }
+      },
+      "required": ["villageId", "villageName", "score", "stats", "geoJson"]
+    },
+    "doctor": {
+      "title": "Doctor",
+      "description": "Represents a doctor available for telemedicine.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "specialty": { "type": "string" },
+        "language": { "type": "string" },
+        "rating": { "type": "number" },
+        "queueLoad": { "type": "integer" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        }
+      },
+      "required": ["name", "specialty", "language", "rating", "queueLoad", "location"]
+    }
+  },
+  "firestore": {
+    "/outbreaks/{outbreakId}": {
+      "schema": "outbreak",
+      "description": "Collection of detected outbreaks."
+    },
+    "/zones/{zoneId}": {
+      "schema": "zone",
+      "description": "Collection of health zones and risk scores."
+    },
+    "/doctors/{doctorId}": {
+      "schema": "doctor",
+      "description": "Collection of registered doctors."
+    }
+  }
+}

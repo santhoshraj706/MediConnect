@@ -1,0 +1,5 @@
+{
+  "name": "MediConnect",
+  "description": "AI-powered rural telemedicine platform for India (Hackrax '26, SDG 3 — Good Health & Well-Being).",
+  "requestFramePermissions": ["geolocation"]
+}

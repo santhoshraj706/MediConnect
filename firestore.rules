@@ -1,0 +1,140 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: outbreaks
+// Document ID: auto-generated
+// Fields:
+//   - villageName: string (required)
+//   - symptomType: string (required)
+//   - caseCount: number (required)
+//   - timestamp: timestamp (required)
+//   - location: map (required) { lat: number, lng: number }
+//
+// Collection: zones
+// Document ID: auto-generated
+// Fields:
+//   - villageId: string (required)
+//   - villageName: string (required)
+//   - score: number (required, 0-100)
+//   - stats: map (required) { patients: number, alerts: number, ashaWorker: string }
+//   - geoJson: string (required)
+//
+// Collection: doctors
+// Document ID: auto-generated
+// Fields:
+//   - name: string (required)
+//   - specialty: string (required)
+//   - language: string (required)
+//   - rating: number (required)
+//   - queueLoad: number (required)
+//   - location: map (required) { lat: number, lng: number }
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "santhoshrajtce@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidOutbreak(data) {
+      return hasRequiredFields(['villageName', 'symptomType', 'caseCount', 'timestamp', 'location']) &&
+             data.villageName is string && data.villageName.size() < 100 &&
+             data.symptomType is string && data.symptomType.size() < 100 &&
+             data.caseCount is number && data.caseCount >= 0 &&
+             data.timestamp is timestamp &&
+             data.location is map && data.location.lat is number && data.location.lng is number;
+    }
+
+    function isValidZone(data) {
+      return hasRequiredFields(['villageId', 'villageName', 'score', 'stats', 'geoJson']) &&
+             data.villageId is string &&
+             data.villageName is string && data.villageName.size() < 100 &&
+             data.score is number && data.score >= 0 && data.score <= 100 &&
+             data.stats is map && data.stats.patients is number && data.stats.alerts is number && data.stats.ashaWorker is string &&
+             data.geoJson is string;
+    }
+
+    function isValidDoctor(data) {
+      return hasRequiredFields(['name', 'specialty', 'language', 'rating', 'queueLoad', 'location']) &&
+             data.name is string && data.name.size() < 100 &&
+             data.specialty is string &&
+             data.language is string &&
+             data.rating is number && data.rating >= 0 && data.rating <= 5 &&
+             data.queueLoad is number && data.queueLoad >= 0 &&
+             data.location is map && data.location.lat is number && data.location.lng is number;
+    }
+
+    function isValidUser(data) {
+      return hasRequiredFields(['uid', 'name', 'role', 'location']) &&
+             data.uid is string && data.name is string &&
+             data.role in ['asha', 'doctor'] &&
+             data.location is map && data.location.lat is number && data.location.lng is number;
+    }
+
+    function isValidPatient(data) {
+      return hasRequiredFields(['ashaUid', 'patientName', 'score', 'status', 'timestamp']) &&
+             data.ashaUid is string && data.patientName is string &&
+             data.score is number && data.status in ['GREEN', 'YELLOW', 'RED'] &&
+             data.timestamp is timestamp;
+    }
+
+    // ===============================================================
+    // Match Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && request.auth.uid == userId && isValidUser(request.resource.data);
+    }
+
+    match /patients/{patientId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidPatient(request.resource.data);
+      allow update, delete: if isAuthenticated() && (request.auth.uid == resource.data.ashaUid || isAdmin());
+    }
+
+    match /outbreaks/{outbreakId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidOutbreak(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /zones/{zoneId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidZone(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /doctors/{doctorId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidDoctor(request.resource.data);
+      allow delete: if isAdmin();
+    }
+  }
+}
